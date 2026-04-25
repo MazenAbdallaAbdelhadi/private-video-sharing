@@ -1,3 +1,3 @@
-export const SharingLinkPage = () => {
+export default function SharingLinkPage() {
   return <div>SharingLinkPage</div>;
-};
+}

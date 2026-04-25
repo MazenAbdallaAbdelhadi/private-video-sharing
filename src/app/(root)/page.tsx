@@ -1,11 +1,12 @@
-import { Pattern } from "@/components/examples/c-file-upload-9";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center">
-      <div className="max-w-7xl">
-        <Pattern />
-      </div>
-    </div>
-  );
+import { auth } from "@/lib/auth/auth";
+
+export default async function Home() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (session?.user?.id) {
+    redirect("/dashboard");
+  }
+  redirect("/login");
 }

@@ -58,6 +58,11 @@
 }
 
 :root {
+  /* Premium accent palette */
+  --accent-violet: oklch(0.541 0.281 293);
+  --accent-violet-glow: oklch(0.541 0.281 293 / 20%);
+  --surface-glass: oklch(0.205 0 0 / 60%);
+  --surface-glass-border: oklch(1 0 0 / 8%);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);

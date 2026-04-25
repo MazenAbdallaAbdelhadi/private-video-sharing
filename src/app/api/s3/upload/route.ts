@@ -6,6 +6,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { S3 } from "@/lib/s3-client";
+import { requireSession } from "@/lib/auth/require-session";
 
 const uploadSchema = z.object({
   fileName: z.string(),
@@ -15,6 +16,7 @@ const uploadSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    await requireSession(request);
     const body = await request.json();
 
     const validation = uploadSchema.safeParse(body);
@@ -47,7 +49,8 @@ export async function POST(request: NextRequest) {
     };
 
     return NextResponse.json(response);
-  } catch {
+  } catch (error) {
+    if (error instanceof Response) return error;
     return NextResponse.json(
       { error: "Internal Sever Error" },
       { status: 500 },

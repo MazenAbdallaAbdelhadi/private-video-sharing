@@ -22,11 +22,21 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  videos        Video[]
+  videoLinks    VideoLink[]
 
   role       String?
   banned     Boolean?  @default(false)
   banReason  String?
   banExpires DateTime?
+
+  // Editor branding & profile
+  brandName          String?
+  brandLogoS3Key     String?
+  defaultAccentColor String?
+
+  clientPages  ClientPage[]
+  clientLinks  ClientLink[]
 
   @@map("user")
 }
@@ -79,4 +89,196 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+enum VideoLinkStatus {
+  active
+  expired
+  revoked
+}
+
+enum VideoLinkEventType {
+  first_access
+  init
+  play
+  expired
+  revoked
+  ip_mismatch
+  session_mismatch
+  visibility_hidden
+  window_blur
+  fullscreen_exit
+  video_start
+  video_pause
+  video_seek
+  video_end
+  heartbeat
+  devtools_detected
+  page_view
+}
+
+model Video {
+  id              String     @id @default(cuid())
+  ownerId         String
+  createdAt       DateTime   @default(now())
+  s3Key           String
+  contentType     String
+  size            Int
+  durationSeconds Int?
+  
+  // Video Metadata
+  title           String?
+  description     String?
+  thumbnailS3Key  String?
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  links VideoLink[]
+  clientPages ClientPageVideo[]
+
+  @@index([ownerId])
+  @@map("video")
+}
+
+model VideoLink {
+  token     String          @id
+  videoId   String
+  ownerId   String
+  createdAt DateTime        @default(now())
+  expiresAt DateTime
+
+  lockedIp  String?
+  sessionId String?
+
+  status    VideoLinkStatus @default(active)
+  revokedAt DateTime?
+  consumed  Boolean         @default(false)
+
+  video  Video           @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  owner  User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  events VideoLinkEvent[]
+
+  @@index([videoId])
+  @@index([ownerId])
+  @@index([expiresAt])
+  @@map("video_link")
+}
+
+model VideoLinkEvent {
+  id        String             @id @default(cuid())
+  token     String
+  createdAt DateTime           @default(now())
+  type      VideoLinkEventType
+
+  ip        String?
+  userAgent String?
+  details   Json?
+
+  link VideoLink @relation(fields: [token], references: [token], onDelete: Cascade)
+
+  @@index([token])
+  @@index([createdAt])
+  @@map("video_link_event")
+}
+
+// ==========================================
+// Phase 1: Client Page & Multi-Video Models
+// ==========================================
+
+model ClientPage {
+  id        String   @id @default(cuid())
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Client metadata
+  clientName  String?
+  clientEmail String?
+
+  // Hero section
+  heroTitle       String  @default("Your Videos")
+  heroSubtitle    String?
+  heroBackgroundS3Key String?
+
+  // About section
+  aboutText String?
+
+  // Branding
+  brandLogoS3Key  String?
+  accentColor     String  @default("#8B5CF6") // violet-500
+  showEditorName  Boolean @default(true)
+
+  // Status
+  isPublished Boolean @default(false)
+
+  owner  User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  videos ClientPageVideo[]
+  links  ClientLink[]
+
+  @@index([ownerId])
+  @@map("client_page")
+}
+
+model ClientPageVideo {
+  id           String @id @default(cuid())
+  clientPageId String
+  videoId      String
+  sortOrder    Int    @default(0)
+
+  clientPage ClientPage @relation(fields: [clientPageId], references: [id], onDelete: Cascade)
+  video      Video      @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([clientPageId, videoId])
+  @@index([clientPageId])
+  @@map("client_page_video")
+}
+
+model ClientLink {
+  token         String          @id
+  clientPageId  String
+  ownerId       String
+  createdAt     DateTime        @default(now())
+  expiresAt     DateTime
+
+  lockedIp      String?
+  sessionId     String?
+  deviceFingerprint String?
+
+  status        VideoLinkStatus @default(active)
+  revokedAt     DateTime?
+  consumed      Boolean         @default(false)
+  maxSessions   Int             @default(1)
+
+  // Client identification for watermark
+  clientName    String?
+  clientEmail   String?
+
+  clientPage ClientPage        @relation(fields: [clientPageId], references: [id], onDelete: Cascade)
+  owner      User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  events     ClientLinkEvent[]
+
+  @@index([clientPageId])
+  @@index([ownerId])
+  @@index([expiresAt])
+  @@map("client_link")
+}
+
+model ClientLinkEvent {
+  id        String             @id @default(cuid())
+  token     String
+  createdAt DateTime           @default(now())
+  type      VideoLinkEventType
+
+  ip        String?
+  userAgent String?
+  details   Json?
+
+  // Which video was being watched (for per-video analytics)
+  videoId   String?
+
+  link ClientLink @relation(fields: [token], references: [token], onDelete: Cascade)
+
+  @@index([token])
+  @@index([createdAt])
+  @@index([videoId])
+  @@map("client_link_event")
 }
