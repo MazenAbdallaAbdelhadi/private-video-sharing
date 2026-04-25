@@ -180,6 +180,15 @@ export function SecurePlayerModal({ token, videoId, clientName, clientEmail, bra
     }
   }, [ensureFullscreen]);
 
+  const handleManualExit = useCallback(async () => {
+    if (document.fullscreenElement) {
+      try {
+        await document.exitFullscreen();
+      } catch (e) {}
+    }
+    onClose();
+  }, [onClose]);
+
   if (!videoId) return null;
 
   return (

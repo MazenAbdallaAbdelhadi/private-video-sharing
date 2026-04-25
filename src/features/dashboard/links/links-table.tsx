@@ -154,6 +154,7 @@ export function LinksTable({ links }: { links: LinkData[] }) {
           })}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }
