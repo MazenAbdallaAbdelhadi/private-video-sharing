@@ -1,18 +1,10 @@
 "use client";
-import Link from "next/link";
-import {
-  BadgeCheckIcon,
-  BellIcon,
-  CreditCardIcon,
-  LogOutIcon,
-  SparkleIcon,
-} from "lucide-react";
+import { LogOutIcon } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -30,19 +22,6 @@ export const UserButton = () => {
   const { data: session, isPending } = authClient.useSession();
 
   const isMobile = useIsMobile();
-
-  const menuData = [
-    {
-      label: "Profile",
-      icon: BadgeCheckIcon,
-      href: "/settings/profile",
-    },
-    {
-      label: "Notifications",
-      icon: BellIcon,
-      href: "/notifications",
-    },
-  ];
 
   if (isPending) return <Skeleton className="size-9 rounded-lg" />;
 
@@ -83,29 +62,6 @@ export const UserButton = () => {
             </div>
           </div>
         </DropdownMenuLabel>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <SparkleIcon />
-            Upgrade to Pro
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-
-        <DropdownMenuSeparator />
-
-        {/* NAVIGATION MENU */}
-        <DropdownMenuGroup>
-          {menuData.map((item) => (
-            <DropdownMenuItem asChild key={item.label}>
-              <Link href={item.href}>
-                <item.icon />
-                {item.label}
-              </Link>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 
