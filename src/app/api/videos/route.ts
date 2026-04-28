@@ -9,6 +9,7 @@ const createVideoSchema = z.object({
   contentType: z.string().min(1),
   size: z.number().int().positive(),
   durationSeconds: z.number().int().positive().optional(),
+  thumbnailS3Key: z.string().min(1).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -37,7 +38,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ videos });
   } catch (error) {
     if (error instanceof Response) return error;
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -54,7 +58,10 @@ export async function POST(request: NextRequest) {
     const parsed = createVideoSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 },
+      );
     }
 
     const video = await prisma.video.create({
@@ -64,6 +71,7 @@ export async function POST(request: NextRequest) {
         contentType: parsed.data.contentType,
         size: parsed.data.size,
         durationSeconds: parsed.data.durationSeconds,
+        thumbnailS3Key: parsed.data.thumbnailS3Key ?? undefined,
       },
       select: {
         id: true,
@@ -74,7 +82,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ videoId: video.id, createdAt: video.createdAt });
   } catch (error) {
     if (error instanceof Response) return error;
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
-

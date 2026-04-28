@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
+import * as z from "zod";
 import { auth } from "@/lib/auth/auth";
 import prisma from "@/lib/prisma";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { S3 } from "@/lib/s3-client";
+
+const updateVideoSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  thumbnailS3Key: z.string().nullable().optional(),
+});
 
 export async function PATCH(
   request: NextRequest,
@@ -17,13 +24,38 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const { title, description } = body;
+    const parsed = updateVideoSchema.safeParse(body);
 
-    const video = await prisma.video.findUnique({ where: { id } });
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 },
+      );
+    }
+
+    const { title, description, thumbnailS3Key } = parsed.data;
+
+    const video = await prisma.video.findUnique({
+      where: { id },
+      select: { ownerId: true, thumbnailS3Key: true },
+    });
     if (!video || video.ownerId !== session.user.id) {
       return NextResponse.json(
         { error: "Not found or forbidden" },
         { status: 404 },
+      );
+    }
+
+    if (
+      thumbnailS3Key !== undefined &&
+      video.thumbnailS3Key &&
+      thumbnailS3Key !== video.thumbnailS3Key
+    ) {
+      await S3.send(
+        new DeleteObjectCommand({
+          Bucket: process.env.S3_BUCKET_NAME!,
+          Key: video.thumbnailS3Key,
+        }),
       );
     }
 
@@ -32,6 +64,8 @@ export async function PATCH(
       data: {
         title: title || null,
         description: description || null,
+        thumbnailS3Key:
+          thumbnailS3Key === undefined ? undefined : thumbnailS3Key,
       },
     });
 
@@ -57,7 +91,10 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const video = await prisma.video.findUnique({ where: { id } });
+    const video = await prisma.video.findUnique({
+      where: { id },
+      select: { ownerId: true, s3Key: true, thumbnailS3Key: true },
+    });
     if (!video || video.ownerId !== session.user.id) {
       return NextResponse.json(
         { error: "Not found or forbidden" },
@@ -65,13 +102,18 @@ export async function DELETE(
       );
     }
 
-    // Delete from S3
-    await S3.send(
-      new DeleteObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME!,
-        Key: video.s3Key,
-      }),
-    );
+    const keysToDelete = [video.s3Key, video.thumbnailS3Key].filter(
+      Boolean,
+    ) as string[];
+
+    for (const key of keysToDelete) {
+      await S3.send(
+        new DeleteObjectCommand({
+          Bucket: process.env.S3_BUCKET_NAME!,
+          Key: key,
+        }),
+      );
+    }
 
     // Delete from DB
     await prisma.video.delete({ where: { id } });

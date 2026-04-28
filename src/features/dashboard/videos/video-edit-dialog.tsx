@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DashboardVideoData } from "./video-grid";
 
@@ -26,6 +27,9 @@ export function VideoEditDialog({
   const router = useRouter();
   const [title, setTitle] = useState(video?.title || "");
   const [description, setDescription] = useState(video?.description || "");
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [removeThumbnail, setRemoveThumbnail] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,19 +38,81 @@ export function VideoEditDialog({
     if (video) {
       setTitle(video.title || "");
       setDescription(video.description || "");
+      setThumbnailFile(null);
+      setThumbnailPreview(null);
+      setRemoveThumbnail(false);
       setError(null);
     }
   }, [video]);
 
+  useEffect(() => {
+    if (!thumbnailFile) {
+      setThumbnailPreview(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(thumbnailFile);
+    setThumbnailPreview(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [thumbnailFile]);
+
   const handleSave = async () => {
     if (!video) return;
     setError(null);
+    setIsLoading(true);
+
     try {
+      let thumbnailS3Key: string | null | undefined;
+
+      if (thumbnailFile) {
+        const initRes = await fetch("/api/s3/upload-thumbnail", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: thumbnailFile.name,
+            contentType: thumbnailFile.type || "application/octet-stream",
+            size: thumbnailFile.size,
+          }),
+        });
+
+        if (!initRes.ok) {
+          const initJson = await initRes.json().catch(() => ({}));
+          throw new Error(
+            initJson.error || "Failed to initialize thumbnail upload",
+          );
+        }
+
+        const initJson = await initRes.json();
+
+        const uploadRes = await fetch(initJson.presignedURL, {
+          method: "PUT",
+          headers: {
+            "content-type": thumbnailFile.type || "application/octet-stream",
+          },
+          body: thumbnailFile,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Failed to upload thumbnail to storage");
+        }
+
+        thumbnailS3Key = initJson.key;
+      } else if (removeThumbnail) {
+        thumbnailS3Key = null;
+      }
+
+      const body: Record<string, unknown> = { title, description };
+      if (thumbnailS3Key !== undefined) {
+        body.thumbnailS3Key = thumbnailS3Key;
+      }
+
       const res = await fetch(`/api/videos/${video.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description }),
+        body: JSON.stringify(body),
       });
+
       if (res.ok) {
         onOpenChange(false);
         router.refresh();
@@ -63,7 +129,7 @@ export function VideoEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Video Details</DialogTitle>
         </DialogHeader>
@@ -95,6 +161,52 @@ export function VideoEditDialog({
               placeholder="Optional description"
               rows={3}
             />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="thumbnailFile">Thumbnail</Label>
+
+            {(thumbnailPreview ||
+              (video?.thumbnailS3Key && !removeThumbnail)) && (
+              <div className="overflow-hidden rounded-xl border bg-slate-950/5">
+                <img
+                  src={
+                    thumbnailPreview
+                      ? thumbnailPreview
+                      : video?.thumbnailS3Key
+                        ? `/api/s3/thumbnail/${video.thumbnailS3Key}`
+                        : undefined
+                  }
+                  alt="Video thumbnail preview"
+                  className="h-36 w-full object-cover"
+                />
+              </div>
+            )}
+
+            <Input
+              id="thumbnailFile"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                setThumbnailFile(e.target.files?.[0] ?? null);
+                setRemoveThumbnail(false);
+              }}
+              disabled={isLoading}
+            />
+            {video?.thumbnailS3Key && !thumbnailPreview && (
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() => setRemoveThumbnail((current) => !current)}
+              >
+                {removeThumbnail
+                  ? "Keep current thumbnail"
+                  : "Remove current thumbnail"}
+              </Button>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Upload a JPG/PNG thumbnail. Recommended size 1280×720.
+            </p>
           </div>
         </div>
         <DialogFooter>

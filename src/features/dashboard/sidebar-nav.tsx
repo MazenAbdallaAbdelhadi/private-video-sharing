@@ -2,18 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Video,
-  FileVideo,
-  Link as LinkIcon,
-  BarChart,
-  Settings,
-} from "lucide-react";
+import { Video, FileVideo, Link as LinkIcon, BarChart } from "lucide-react";
 
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -22,6 +16,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { UserSidebarButton } from "../auth";
 
 const navItems = [
   {
@@ -43,11 +38,6 @@ const navItems = [
     title: "Analytics",
     url: "/dashboard/analytics",
     icon: BarChart,
-  },
-  {
-    title: "Settings",
-    url: "/dashboard/settings",
-    icon: Settings,
   },
 ];
 
@@ -71,7 +61,10 @@ export function SidebarNav() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith(item.url)}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith(item.url)}
+                  >
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -83,6 +76,9 @@ export function SidebarNav() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <UserSidebarButton />
+      </SidebarFooter>
     </Sidebar>
   );
 }
