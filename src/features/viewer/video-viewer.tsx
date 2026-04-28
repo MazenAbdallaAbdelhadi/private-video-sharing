@@ -26,19 +26,18 @@ export function VideoViewer({ token }: Props) {
     armTimer: number | null;
   }>({ armedAtMs: null, armTimer: null });
 
-  const [hasEntered, setHasEntered] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
-  const [overlayMessage, setOverlayMessage] = useState<string>(
-    "Enter fullscreen to continue watching",
-  );
+  const [playbackRate, setPlaybackRate] = useState<number>(1);
+
+  const speedOptions = [1, 1.25, 1.5, 2, 3, 4] as const;
 
   const apiBase = useMemo(() => `/api/v/${encodeURIComponent(token)}`, [token]);
 
   const invalidate = useCallback(
-    async (reason: "fullscreen_exit" | "visibility_hidden" | "window_blur") => {
+    async (reason: "devtools_detected") => {
       try {
         await fetch(`${apiBase}/revoke`, {
           method: "POST",
@@ -54,23 +53,6 @@ export function VideoViewer({ token }: Props) {
     },
     [apiBase, router],
   );
-
-  const ensureFullscreen = useCallback(async () => {
-    const el = containerRef.current;
-    if (!el) return false;
-
-    const isFullscreen =
-      document.fullscreenElement === el || document.fullscreenElement != null;
-    if (isFullscreen) return true;
-
-    try {
-      // Must be called from a user gesture to succeed in most browsers.
-      await el.requestFullscreen();
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
 
   const fetchPlayUrl = useCallback(async () => {
     const res = await fetch(`${apiBase}/play`, { method: "GET" });
@@ -93,7 +75,7 @@ export function VideoViewer({ token }: Props) {
   }, [apiBase, router]);
 
   const armEnforcementSoon = useCallback(() => {
-    // Arm enforcement shortly after fullscreen transition settles.
+    // Arm enforcement shortly after playback starts.
     if (enforcementRef.current.armTimer) {
       window.clearTimeout(enforcementRef.current.armTimer);
     }
@@ -105,49 +87,25 @@ export function VideoViewer({ token }: Props) {
   }, []);
 
   useEffect(() => {
-    const onFullscreenChange = () => {
-      const el = containerRef.current;
-      if (!el) return;
-
-      const armedAtMs = enforcementRef.current.armedAtMs;
-      if (!armedAtMs) return;
-      // If fullscreen is no longer on *any* element, we treat as exit.
-      // We don't require it to be our container because some browsers may fullscreen the <video>.
-      if (!document.fullscreenElement) void invalidate("fullscreen_exit");
-    };
-
-    const onVisibilityChange = () => {
-      const armedAtMs = enforcementRef.current.armedAtMs;
-      if (!armedAtMs) return;
-      if (Date.now() - armedAtMs < 1000) return; // grace window around fullscreen transition
-      if (document.visibilityState === "hidden") void invalidate("visibility_hidden");
-    };
-
-    const onBlur = () => {
-      const armedAtMs = enforcementRef.current.armedAtMs;
-      if (!armedAtMs) return;
-      if (Date.now() - armedAtMs < 1000) return; // grace window
-      void invalidate("window_blur");
-    };
-
-    document.addEventListener("fullscreenchange", onFullscreenChange);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    window.addEventListener("blur", onBlur);
-
-    return () => {
-      document.removeEventListener("fullscreenchange", onFullscreenChange);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("blur", onBlur);
-    };
-  }, [invalidate]);
+    void (async () => {
+      await init();
+      await fetchPlayUrl();
+    })();
+  }, [init, fetchPlayUrl]);
 
   useEffect(() => {
-    if (!hasEntered) return;
+    if (!videoUrl) return;
+    armEnforcementSoon();
+  }, [videoUrl, armEnforcementSoon]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.playbackRate = playbackRate;
+  }, [playbackRate]);
+
+  useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      const armedAtMs = enforcementRef.current.armedAtMs;
-      if (!armedAtMs) return;
-
       // Best-effort: prevent common function-key shortcuts that can exit fullscreen
       // or steal focus (browser/OS dependent).
       if (e.key.startsWith("F")) {
@@ -160,11 +118,12 @@ export function VideoViewer({ token }: Props) {
     };
 
     window.addEventListener("keydown", onKeyDown, { capture: true });
-    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
-  }, [hasEntered]);
+    return () =>
+      window.removeEventListener("keydown", onKeyDown, { capture: true });
+  }, []);
 
   useEffect(() => {
-    if (!hasEntered) return;
+    if (!videoUrl) return;
     // Best-effort devtools detection. Not foolproof, but catches common cases.
     const interval = window.setInterval(() => {
       const armedAtMs = enforcementRef.current.armedAtMs;
@@ -175,48 +134,12 @@ export function VideoViewer({ token }: Props) {
       const heightDelta = Math.abs(window.outerHeight - window.innerHeight);
       const devtoolsLikely = widthDelta > 160 || heightDelta > 160;
       if (devtoolsLikely) {
-        void invalidate("window_blur");
+        void invalidate("devtools_detected");
       }
     }, 750);
 
     return () => window.clearInterval(interval);
-  }, [hasEntered, invalidate]);
-
-  const onStart = useCallback(async () => {
-    const ok = await ensureFullscreen();
-    if (!ok) {
-      setOverlayMessage("Fullscreen mode is required to continue watching");
-      return;
-    }
-
-    setHasEntered(true);
-    setOverlayMessage("");
-    armEnforcementSoon();
-
-    try {
-      await init();
-      await fetchPlayUrl();
-      setTimeout(() => {
-        void videoRef.current?.play().catch(() => {
-          setOverlayMessage("Press play to continue");
-        });
-      }, 0);
-    } catch {
-      router.replace("/link-expired");
-    }
-  }, [armEnforcementSoon, ensureFullscreen, fetchPlayUrl, init, router]);
-
-  const onVideoPlayAttempt = useCallback(async () => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    if (document.fullscreenElement !== el) {
-      try {
-        videoRef.current?.pause();
-      } catch {}
-      setOverlayMessage("Enter fullscreen to continue watching");
-    }
-  }, []);
+  }, [videoUrl, invalidate]);
 
   return (
     <div
@@ -232,34 +155,42 @@ export function VideoViewer({ token }: Props) {
         controlsList="nodownload noplaybackrate"
         disablePictureInPicture
         playsInline
-        onPlay={onVideoPlayAttempt}
       />
 
-      {(!hasEntered || isValidating || overlayMessage || !videoUrl) && (
+      {videoUrl && (
+        <div className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-xs text-white shadow-xl">
+          <span className="font-medium">Speed</span>
+          {speedOptions.map((speed) => (
+            <button
+              key={speed}
+              type="button"
+              onClick={() => setPlaybackRate(speed)}
+              className={`rounded-full px-2.5 py-1 transition-colors ${
+                playbackRate === speed
+                  ? "bg-white text-black"
+                  : "bg-white/10 text-white hover:bg-white/20"
+              }`}
+            >
+              {speed}x
+            </button>
+          ))}
+        </div>
+      )}
+
+      {(isValidating || !videoUrl) && (
         <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-6">
           <div className="max-w-md w-full text-center space-y-4">
             <p className="text-lg font-medium">
-              {isValidating
-                ? "Validating link…"
-                : overlayMessage || "Fullscreen mode is required to continue watching"}
+              {isValidating ? "Validating link…" : "Preparing secure playback"}
             </p>
             {expiresAt && (
               <p className="text-sm text-white/70">
                 Link expires at {expiresAt.toLocaleString()}
               </p>
             )}
-            <button
-              type="button"
-              onClick={() => void onStart()}
-              disabled={isValidating}
-              className="inline-flex items-center justify-center rounded-md bg-white text-black px-4 py-2 text-sm font-medium hover:bg-white/90 disabled:opacity-60 disabled:pointer-events-none"
-            >
-              Enter fullscreen &amp; start
-            </button>
           </div>
         </div>
       )}
     </div>
   );
 }
-

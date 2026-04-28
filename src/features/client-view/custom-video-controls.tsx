@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize2,
+  Minimize2,
+} from "lucide-react";
 
 type CustomVideoControlsProps = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -15,7 +22,10 @@ function formatTime(seconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function CustomVideoControls({ videoRef, onToggleFullscreen }: CustomVideoControlsProps) {
+export function CustomVideoControls({
+  videoRef,
+  onToggleFullscreen,
+}: CustomVideoControlsProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -23,13 +33,16 @@ export function CustomVideoControls({ videoRef, onToggleFullscreen }: CustomVide
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState<number>(1);
+  const speedOptions = [1, 1.25, 1.5, 2, 3, 4] as const;
 
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   useEffect(() => {
@@ -59,6 +72,12 @@ export function CustomVideoControls({ videoRef, onToggleFullscreen }: CustomVide
       video.removeEventListener("volumechange", onVolumeChange);
     };
   }, [videoRef]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.playbackRate = playbackRate;
+  }, [playbackRate, videoRef]);
 
   // Hide controls after 3 seconds of inactivity
   useEffect(() => {
@@ -108,15 +127,26 @@ export function CustomVideoControls({ videoRef, onToggleFullscreen }: CustomVide
   };
 
   return (
-    <div 
+    <div
       className={`absolute inset-0 flex flex-col justify-end p-4 transition-opacity duration-500 z-40 ${
         showControls ? "opacity-100" : "opacity-0"
       }`}
-      style={{ background: showControls ? "linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 20%)" : "transparent" }}
+      style={{
+        background: showControls
+          ? "linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 20%)"
+          : "transparent",
+      }}
     >
       <div className="flex items-center gap-4 text-white">
-        <button onClick={togglePlay} className="hover:text-violet-400 transition-colors">
-          {isPlaying ? <Pause size={24} /> : <Play size={24} fill="currentColor" />}
+        <button
+          onClick={togglePlay}
+          className="hover:text-violet-400 transition-colors"
+        >
+          {isPlaying ? (
+            <Pause size={24} />
+          ) : (
+            <Play size={24} fill="currentColor" />
+          )}
         </button>
 
         <div className="flex items-center gap-2 text-sm font-mono w-full max-w-[80%] mx-auto">
@@ -132,10 +162,33 @@ export function CustomVideoControls({ videoRef, onToggleFullscreen }: CustomVide
           <span>{formatTime(duration)}</span>
         </div>
 
-        <button onClick={toggleMute} className="hover:text-violet-400 transition-colors">
+        <div className="flex items-center gap-1">
+          {speedOptions.map((speed) => (
+            <button
+              key={speed}
+              type="button"
+              onClick={() => setPlaybackRate(speed)}
+              className={`rounded-full px-2 py-1 text-[11px] transition-colors ${
+                playbackRate === speed
+                  ? "bg-white text-black"
+                  : "bg-white/10 text-white hover:bg-white/20"
+              }`}
+            >
+              {speed}x
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={toggleMute}
+          className="hover:text-violet-400 transition-colors"
+        >
           {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
         </button>
-        <button onClick={onToggleFullscreen} className="hover:text-violet-400 transition-colors">
+        <button
+          onClick={onToggleFullscreen}
+          className="hover:text-violet-400 transition-colors"
+        >
           {isFullscreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
         </button>
       </div>

@@ -14,12 +14,28 @@ export default async function ClientPageBuilderRoute({
 
   const { id } = await params;
 
-  const page = await prisma.clientPage.findUnique({
+  const page = await prisma.clientPage.findFirst({
     where: { id },
-    include: {
+    select: {
+      id: true,
+      ownerId: true,
+      clientName: true,
+      clientEmail: true,
       videos: {
         orderBy: { sortOrder: "asc" },
-        include: { video: true },
+        select: {
+          id: true,
+          videoId: true,
+          sortOrder: true,
+          video: {
+            select: {
+              id: true,
+              title: true,
+              durationSeconds: true,
+              thumbnailS3Key: true,
+            },
+          },
+        },
       },
     },
   });
@@ -41,10 +57,11 @@ export default async function ClientPageBuilderRoute({
   });
 
   return (
-    <div className="h-[calc(100vh-theme(spacing.16))] -mx-4 -my-4 lg:-mx-6 lg:-my-6 flex flex-col">
-      <PageBuilder 
-        initialData={page} 
-        allVideos={allVideos} 
+    <div className="min-h-screen -mx-4 -my-4 lg:-mx-6 lg:-my-6 flex flex-col">
+      <PageBuilder
+        key={`${page.id}-${page.clientName ?? ""}-${page.clientEmail ?? ""}-${page.videos.length}`}
+        initialData={page}
+        allVideos={allVideos}
       />
     </div>
   );

@@ -9,7 +9,7 @@ import {
 } from "@/lib/video-links/validate";
 
 const revokeSchema = z.object({
-  reason: z.enum(["fullscreen_exit", "visibility_hidden", "window_blur", "devtools_detected"]),
+  reason: z.enum(["devtools_detected"]),
 });
 
 export async function POST(
@@ -22,7 +22,10 @@ export async function POST(
     const parsed = revokeSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 },
+      );
     }
 
     // Ensure the caller is the active viewer session/IP. Any mismatch will revoke anyway.
@@ -58,6 +61,9 @@ export async function POST(
   } catch (error) {
     if (error instanceof Response) return error;
     console.error("[REVOKE_ERROR]", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

@@ -32,7 +32,10 @@ type Props = {
 
 export function ClientPageLayout({ token }: Props) {
   const router = useRouter();
-  const [data, setData] = useState<{ page: PageData; videos: VideoData[] } | null>(null);
+  const [data, setData] = useState<{
+    page: PageData;
+    videos: VideoData[];
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [fp, setFp] = useState<string | null>(null);
@@ -45,40 +48,32 @@ export function ClientPageLayout({ token }: Props) {
     };
   }, []);
 
-  const invalidate = useCallback(async (reason: "visibility_hidden" | "window_blur" | "devtools_detected") => {
-    if (!fp) return;
-    try {
-      await fetch(`/api/c/${encodeURIComponent(token)}/revoke`, {
-        method: "POST",
-        headers: { 
-          "content-type": "application/json",
-          "x-device-fingerprint": fp
-        },
-        body: JSON.stringify({ reason }),
-      });
-    } finally {
-      router.replace("/link-expired");
-    }
-  }, [token, router, fp]);
+  const invalidate = useCallback(
+    async (reason: "devtools_detected") => {
+      if (!fp) return;
+      try {
+        await fetch(`/api/c/${encodeURIComponent(token)}/revoke`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-device-fingerprint": fp,
+          },
+          body: JSON.stringify({ reason }),
+        });
+      } finally {
+        router.replace("/link-expired");
+      }
+    },
+    [token, router, fp],
+  );
 
   useEffect(() => {
     if (!data) return; // Only arm after data is loaded
 
     let armed = false;
-    const armTimer = setTimeout(() => { armed = true; }, 1500);
-
-    const onVisibilityChange = () => {
-      if (!armed) return;
-      if (document.visibilityState === "hidden") void invalidate("visibility_hidden");
-    };
-
-    const onBlur = () => {
-      if (!armed) return;
-      void invalidate("window_blur");
-    };
-
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    window.addEventListener("blur", onBlur);
+    const armTimer = setTimeout(() => {
+      armed = true;
+    }, 1500);
 
     const devtoolsInterval = window.setInterval(() => {
       if (!armed) return;
@@ -102,8 +97,6 @@ export function ClientPageLayout({ token }: Props) {
 
     return () => {
       clearTimeout(armTimer);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("blur", onBlur);
       window.clearInterval(devtoolsInterval);
       window.removeEventListener("keydown", onKeyDown, { capture: true });
     };
@@ -124,7 +117,7 @@ export function ClientPageLayout({ token }: Props) {
         });
 
         if (!res.ok) throw new Error("Link invalid, expired, or revoked.");
-        
+
         const json = await res.json();
         setData(json);
       } catch (err: any) {
@@ -151,7 +144,9 @@ export function ClientPageLayout({ token }: Props) {
       <div className="min-h-svh flex items-center justify-center bg-black text-white">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-t-2 border-violet-500 animate-spin" />
-          <p className="text-white/50 text-sm tracking-widest uppercase font-mono">Loading Secure Environment</p>
+          <p className="text-white/50 text-sm tracking-widest uppercase font-mono">
+            Loading Secure Environment
+          </p>
         </div>
       </div>
     );
@@ -160,23 +155,22 @@ export function ClientPageLayout({ token }: Props) {
   const { page, videos } = data;
 
   return (
-    <div 
+    <div
       className="min-h-svh client-view-bg text-white font-sans selection:bg-violet-500/30"
       style={{ "--accent-color": page.accentColor } as React.CSSProperties}
     >
       <div className="max-w-6xl mx-auto px-6 py-12 md:py-24 space-y-24">
-        
         <header className="space-y-6 max-w-3xl relative z-10 animate-fade-in-up">
           {page.showEditorName && page.brandName && (
             <div className="text-violet-400 font-mono tracking-wider text-sm uppercase">
               {page.brandName}
             </div>
           )}
-          
+
           <h1 className="text-4xl md:text-6xl font-medium tracking-tight text-white/90">
             {page.heroTitle}
           </h1>
-          
+
           {page.heroSubtitle && (
             <p className="text-xl md:text-2xl text-white/60 font-light leading-relaxed max-w-2xl">
               {page.heroSubtitle}
@@ -185,15 +179,16 @@ export function ClientPageLayout({ token }: Props) {
 
           {page.clientName && (
             <div className="inline-block mt-8 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white/70 text-sm backdrop-blur-md">
-              Prepared securely for <span className="text-white font-medium">{page.clientName}</span>
+              Prepared securely for{" "}
+              <span className="text-white font-medium">{page.clientName}</span>
             </div>
           )}
         </header>
 
         <main className="animate-fade-in-up delay-100">
-          <VideoGallery 
-            token={token} 
-            videos={videos} 
+          <VideoGallery
+            token={token}
+            videos={videos}
             clientName={page.clientName}
             clientEmail={page.clientEmail}
             brandName={page.brandName}
@@ -202,7 +197,9 @@ export function ClientPageLayout({ token }: Props) {
 
         {page.aboutText && (
           <section className="glass-card rounded-2xl p-8 md:p-12 max-w-3xl relative z-10 animate-fade-in-up delay-200">
-            <h2 className="text-sm font-mono tracking-widest uppercase text-white/40 mb-6">About</h2>
+            <h2 className="text-sm font-mono tracking-widest uppercase text-white/40 mb-6">
+              About
+            </h2>
             <div className="prose prose-invert prose-p:leading-relaxed prose-p:text-white/70 max-w-none">
               <p>{page.aboutText}</p>
             </div>
@@ -210,12 +207,14 @@ export function ClientPageLayout({ token }: Props) {
         )}
 
         <footer className="pt-20 pb-10 border-t border-white/10 flex flex-col items-center justify-center gap-4 text-white/40 text-sm relative z-10 animate-fade-in-up delay-300">
-          <p>&copy; {new Date().getFullYear()} {page.brandName || "Editor"}. All rights reserved.</p>
+          <p>
+            &copy; {new Date().getFullYear()} {page.brandName || "Editor"}. All
+            rights reserved.
+          </p>
           <p className="flex items-center gap-2 opacity-50 text-xs">
             Powered by Monteer Secure Delivery
           </p>
         </footer>
-
       </div>
     </div>
   );
