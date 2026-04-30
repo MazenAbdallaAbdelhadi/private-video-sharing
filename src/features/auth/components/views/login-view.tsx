@@ -48,9 +48,9 @@ export const LoginView = () => {
           </Button>
         </form>
 
-        <Button onClick={addUser} variant="outline" className="mt-4 w-full">
+        {/* <Button onClick={addUser} variant="outline" className="mt-4 w-full">
           add user
-        </Button>
+        </Button> */}
       </CardWrapper>
     </div>
   );
