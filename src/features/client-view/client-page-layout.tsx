@@ -78,7 +78,17 @@ export function ClientPageLayout({ token }: Props) {
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (!armed) return;
-      if (e.key.startsWith("F") && !isNaN(Number(e.key.slice(1)))) {
+
+      // F12 or other F-keys
+      const isFKey = e.key.startsWith("F") && !isNaN(Number(e.key.slice(1)));
+      
+      // Ctrl/Cmd + Shift + I/J/C
+      const isDevShortcut = (e.ctrlKey || e.metaKey) && e.shiftKey && ["I", "J", "C"].includes(e.key.toUpperCase());
+      
+      // Ctrl/Cmd + U (View Source)
+      const isViewSource = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "u";
+
+      if (isFKey || isDevShortcut || isViewSource) {
         e.preventDefault();
         e.stopPropagation();
       }
@@ -151,7 +161,10 @@ export function ClientPageLayout({ token }: Props) {
   };
 
   return (
-    <div className="min-h-svh client-view-bg text-white font-sans selection:bg-blue-500/30">
+    <div 
+      className="min-h-svh client-view-bg text-white font-sans selection:bg-blue-500/30"
+      onContextMenu={(e) => e.preventDefault()}
+    >
       {/* Navigation Bar */}
       <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-black/40 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
