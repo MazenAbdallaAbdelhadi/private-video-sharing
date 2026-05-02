@@ -204,9 +204,16 @@ export function VideoEditDialog({
                   : "Remove current thumbnail"}
               </Button>
             )}
-            <p className="text-xs text-muted-foreground">
-              Upload a JPG/PNG thumbnail. Recommended size 1280×720.
-            </p>
+            <div className="rounded-lg bg-blue-500/5 border border-blue-500/10 p-3">
+              <p className="text-xs text-blue-400 font-medium mb-1">
+                Thumbnail Requirements:
+              </p>
+              <ul className="text-[10px] text-white/50 space-y-1 list-disc list-inside">
+                <li>Recommended: 1280×720 (16:9 aspect ratio)</li>
+                <li>Format: JPG or PNG</li>
+                <li>Max file size: 5MB</li>
+              </ul>
+            </div>
           </div>
         </div>
         <DialogFooter>
