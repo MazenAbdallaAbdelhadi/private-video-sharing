@@ -17,16 +17,19 @@ export default async function DashboardLayout({
   }
 
   return (
-    <SidebarProvider>
-      <SidebarNav />
-      <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b px-4 lg:h-16">
-          <SidebarTrigger />
-        </header>
-        <main className="flex-1 p-4 lg:p-6 bg-muted/20">
-          {children}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="dark min-h-svh client-view-bg">
+      <SidebarProvider>
+        <SidebarNav />
+        <SidebarInset className="bg-transparent!">
+          <header className="flex h-14 items-center gap-4 border-b border-white/5 px-4 lg:h-16">
+            <SidebarTrigger />
+          </header>
+          <main className="flex-1 p-4 lg:p-6">
+            {children}
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
   );
 }
+

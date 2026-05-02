@@ -116,16 +116,7 @@ export function SecurePlayerModal({ token, videoId, clientName, clientEmail, bra
     if (!hasEntered) return;
 
     const onFullscreenChange = () => {
-      const armedAtMs = enforcementRef.current.armedAtMs;
-      if (!armedAtMs) return;
-      
-      // If they exit fullscreen, just close the modal instead of revoking the entire link
-      if (!document.fullscreenElement) {
-        try {
-          videoRef.current?.pause();
-        } catch {}
-        onClose();
-      }
+      // We no longer close the modal on fullscreen change to allow switching apps
     };
 
     document.addEventListener("fullscreenchange", onFullscreenChange);
@@ -133,7 +124,7 @@ export function SecurePlayerModal({ token, videoId, clientName, clientEmail, bra
     return () => {
       document.removeEventListener("fullscreenchange", onFullscreenChange);
     };
-  }, [hasEntered, onClose]);
+  }, [hasEntered]);
 
   // Clean up heartbeat on unmount
   useEffect(() => {
@@ -146,12 +137,9 @@ export function SecurePlayerModal({ token, videoId, clientName, clientEmail, bra
 
   const onStart = useCallback(async () => {
     setIsLoading(true);
-    const ok = await ensureFullscreen();
-    if (!ok) {
-      setOverlayMessage("Fullscreen mode is required");
-      setIsLoading(false);
-      return;
-    }
+    
+    // Try to enter fullscreen but don't require it
+    await ensureFullscreen().catch(() => {});
 
     setHasEntered(true);
     setOverlayMessage("");
@@ -250,7 +238,7 @@ export function SecurePlayerModal({ token, videoId, clientName, clientEmail, bra
                     onClick={onStart}
                     className="rounded-full bg-violet-600 text-white px-8 py-3 font-medium hover:bg-violet-500 transition-colors shadow-[0_0_20px_rgba(139,92,246,0.3)]"
                   >
-                    Enter Fullscreen & Play
+                    Watch Securely
                   </button>
                   <button
                     onClick={onClose}

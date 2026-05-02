@@ -76,16 +76,6 @@ export function ClientPageLayout({ token }: Props) {
       armed = true;
     }, 1500);
 
-    const devtoolsInterval = window.setInterval(() => {
-      if (!armed) return;
-      const widthDelta = Math.abs(window.outerWidth - window.innerWidth);
-      const heightDelta = Math.abs(window.outerHeight - window.innerHeight);
-      const devtoolsLikely = widthDelta > 160 || heightDelta > 160;
-      if (devtoolsLikely) {
-        void invalidate("devtools_detected");
-      }
-    }, 1000);
-
     const onKeyDown = (e: KeyboardEvent) => {
       if (!armed) return;
       if (e.key.startsWith("F") && !isNaN(Number(e.key.slice(1)))) {
@@ -97,10 +87,9 @@ export function ClientPageLayout({ token }: Props) {
 
     return () => {
       clearTimeout(armTimer);
-      window.clearInterval(devtoolsInterval);
       window.removeEventListener("keydown", onKeyDown, { capture: true });
     };
-  }, [data, invalidate]);
+  }, [data]);
 
   useEffect(() => {
     async function initPage() {
@@ -213,7 +202,7 @@ export function ClientPageLayout({ token }: Props) {
               onClick={scrollToGallery}
               className="px-8 py-4 rounded-full perapixel-bg-blue hover:bg-blue-600 text-white font-semibold transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(37,99,235,0.3)]"
             >
-              Explore Your Project
+              Explore Your Videos
             </button>
           </div>
         </div>

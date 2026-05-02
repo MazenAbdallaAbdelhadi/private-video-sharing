@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
+
 import { Video, FileVideo, Link as LinkIcon, BarChart } from "lucide-react";
 
 import {
@@ -45,18 +47,21 @@ export function SidebarNav() {
   const pathname = usePathname();
 
   return (
-    <Sidebar>
-      <SidebarHeader className="p-4 border-b">
-        <div className="font-semibold text-lg flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-violet-600 flex items-center justify-center text-white text-xs">
-            M
-          </div>
-          Monteer
-        </div>
+    <Sidebar className="border-r border-white/5 bg-black/40 backdrop-blur-xl">
+      <SidebarHeader className="p-4 border-b border-white/5">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <Image 
+            src="/dashboard-logo.png" 
+            alt="PeraPixel" 
+            width={120} 
+            height={30} 
+            className="h-10 w-full object-cover"
+          />
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-white/40 uppercase tracking-widest text-[10px]">Management</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -64,10 +69,11 @@ export function SidebarNav() {
                   <SidebarMenuButton
                     asChild
                     isActive={pathname.startsWith(item.url)}
+                    className="data-[active=true]:bg-blue-600/10 data-[active=true]:text-blue-400"
                   >
                     <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="w-4 h-4" />
+                      <span className="font-medium">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -76,9 +82,10 @@ export function SidebarNav() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-white/5">
         <UserSidebarButton />
       </SidebarFooter>
     </Sidebar>
   );
 }
+

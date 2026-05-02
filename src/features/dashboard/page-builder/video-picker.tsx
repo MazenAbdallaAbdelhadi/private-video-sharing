@@ -179,7 +179,7 @@ export function VideoPicker({
                 availableVideos.map((video) => (
                   <div
                     key={video.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:border-violet-500/50 transition-colors"
+                    className="flex items-center justify-between p-3 border rounded-lg hover:border-blue-500/50 transition-colors"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-24 h-14 bg-muted rounded overflow-hidden shrink-0 flex items-center justify-center relative">

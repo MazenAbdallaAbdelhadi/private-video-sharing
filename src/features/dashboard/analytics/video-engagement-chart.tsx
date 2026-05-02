@@ -38,14 +38,14 @@ export function VideoEngagementChart({
                   <span>Max Watch: {Math.floor(stats.totalTimeSeconds)}s / {video.durationSeconds || "?"}s</span>
                 </div>
               </div>
-              <span className="font-bold text-lg text-violet-600 dark:text-violet-400">
+              <span className="font-bold text-lg text-blue-600 dark:text-blue-400">
                 {percentage}%
               </span>
             </div>
             
             <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
               <div 
-                className="h-full bg-violet-500 transition-all duration-1000 ease-out" 
+                className="h-full bg-blue-500 transition-all duration-1000 ease-out" 
                 style={{ width: `${percentage}%` }}
               />
             </div>

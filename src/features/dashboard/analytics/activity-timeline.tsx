@@ -77,7 +77,7 @@ export function ActivityTimeline({ events, videos }: { events: EventLog[], video
             </div>
             
             {event.videoId && (
-              <p className="text-xs text-violet-600 dark:text-violet-400 mb-2">
+              <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
                 Video: {getVideoTitle(event.videoId)}
               </p>
             )}

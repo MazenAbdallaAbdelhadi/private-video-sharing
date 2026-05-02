@@ -18,7 +18,7 @@ export function VideoCard({ video, onEdit }: { video: DashboardVideoData; onEdit
   };
 
   return (
-    <div className="group rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col hover:border-violet-500/50 transition-colors">
+    <div className="group rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col hover:border-blue-500/50 transition-colors">
       <div className="aspect-video bg-muted relative border-b overflow-hidden">
         {video.thumbnailS3Key ? (
           <img 
@@ -67,7 +67,7 @@ export function VideoCard({ video, onEdit }: { video: DashboardVideoData; onEdit
         </div>
         
         {video.clientPagesCount > 0 && (
-          <div className="text-xs text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/30 px-2 py-1 rounded w-fit mt-1">
+          <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded w-fit mt-1">
             Used in {video.clientPagesCount} page{video.clientPagesCount > 1 ? "s" : ""}
           </div>
         )}
