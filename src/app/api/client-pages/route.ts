@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         heroTitle: body.heroTitle || "Your Videos",
         clientName: body.clientName || null,
         clientEmail: body.clientEmail || null,
-        isPublished: false,
+        isPublished: true,
       },
     });
 
