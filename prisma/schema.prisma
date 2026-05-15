@@ -208,7 +208,7 @@ model ClientPage {
   showEditorName  Boolean @default(true)
 
   // Status
-  isPublished Boolean @default(false)
+  isPublished Boolean @default(true)
 
   owner  User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   videos ClientPageVideo[]
